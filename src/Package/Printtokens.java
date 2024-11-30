@@ -1,4 +1,4 @@
-
+package Package;
 import java.io.*;
 
 public class Printtokens{
@@ -22,7 +22,9 @@ public class Printtokens{
 	BufferedReader open_character_stream(String fname) {
 		BufferedReader br = null;
 		if (fname == null) { 
-			br = new BufferedReader(new InputStreamReader(System.in));
+			//Suggested Change
+			return new BufferedReader(new StringReader(""));
+			//br = new BufferedReader(new InputStreamReader(System.in));
 		} else {
 			try {
 				FileReader fr = new FileReader(fname);
@@ -93,70 +95,73 @@ public class Printtokens{
 	/********************************************************/
 	String get_token(BufferedReader br)
 	{ 
-	  int i=0,j;
+	  //int i=0,j;  //Not needed
 	  int id=0;
 	  int res = 0;
 	  char ch = '\0';
 	 
 	  StringBuilder sb = new StringBuilder();
 
-	   try {
-		   res = get_char(br);
-		   if (res == -1) {
-			   return null;
-		   }
-		   ch = (char)res;
-		  while(ch==' '||ch=='\n' || ch == '\r')   
-	      {
+		try {
 			res = get_char(br);
+			if (res == -1) {
+				return null;
+			}
 			ch = (char)res;
-	      } 
-	   
-	   if(res == -1)return null;
-	   sb.append(ch);
-	   if(is_spec_symbol(ch)==true)return sb.toString(); 
-	   if(ch =='"')id=2;    /* prepare for string */ 
-       if(ch ==59)id=1;    /* prepare for comment */ 
-	   
-	   res = get_char(br);
-	   if (res == -1) {
-		   unget_char(ch,br);
-		   return sb.toString();
-	   }
-	   ch = (char)res;
+			while(ch==' '||ch=='\n' || ch == '\r')   
+			{
+				res = get_char(br);
+				ch = (char)res;
+			} 
 
-	   while (is_token_end(id,res) == false)/* until meet the end character */
-	   {
-	       sb.append(ch);
-	       br.mark(4);
-	       res = get_char(br);
-		   if (res == -1) {
-			   break;
-		   }
-		   ch = (char)res;
-	   }
-	 
-	   if(res == -1)       /* if end character is eof token    */
-	      { unget_char(ch,br);        /* then put back eof on token_stream */
-	        return sb.toString();
-	      }
-	 
-	   if(is_spec_symbol(ch)==true)     /* if end character is special_symbol */
-	      { unget_char(ch,br);        /* then put back this character       */
-	        return sb.toString();
-	      }
-	   if(id==1)                  /* if end character is " and is string */
-	     {
-		   if (ch == '"') {
-			   sb.append(ch);
-		   }
-	       return sb.toString(); 
-	     }
-	   if(id==0 && ch==59)
-	                                   /* when not in string or comment,meet ";" */
-	     { unget_char(ch,br);       /* then put back this character         */
-	       return sb.toString(); 
-	     }
+		
+		if(res == -1)return null; //Included in suggested change
+		sb.append(ch);
+		if(is_spec_symbol(ch)==true)return sb.toString(); 
+		if(ch =='"')id=2;    /* prepare for string */ 
+		if(ch ==59)id=1;    /* prepare for comment */ 
+		
+		res = get_char(br);
+		if (res == -1) {
+			unget_char(ch,br);
+			return sb.toString();
+		}
+		ch = (char)res;
+
+		while (is_token_end(id,res) == false)/* until meet the end character */
+		{
+			sb.append(ch);
+			br.mark(4);
+			res = get_char(br);
+			if (res == -1) {
+				break;
+			}
+			ch = (char)res;
+		}
+		
+		if(res == -1)       /* if end character is eof token    */
+			{ 
+			unget_char(ch,br);        /* then put back eof on token_stream */
+			return sb.toString();
+			}
+		
+		if(is_spec_symbol(ch)==true)     /* if end character is special_symbol */
+			{ 
+			unget_char(ch,br);        /* then put back this character       */
+			return sb.toString();
+			}
+		if(id==1)                  /* if end character is " and is string */
+			{
+			if (ch == '"') {
+				sb.append(ch);
+			}
+			return sb.toString(); 
+			}
+		if(id==0 && ch==59)
+										/* when not in string or comment,meet ";" */
+			{ unget_char(ch,br);       /* then put back this character         */
+			return sb.toString(); 
+			}
 	} catch (IOException e) {
 		e.printStackTrace();
 	}
@@ -207,8 +212,9 @@ public class Printtokens{
 	 if(is_identifier(tok))return(identifier);
 	 if(is_num_constant(tok))return(num_constant);
 	 if(is_str_constant(tok))return(str_constant);
+	 if(is_comment(tok))return(comment);                        //<----------
 	 if(is_char_constant(tok))return(char_constant);
-	 if(is_comment(tok))return(comment);
+	 //if(is_comment(tok))return(comment);                      ////////////////Changed Order
 	 return(error);                    /* else look as error token */
 	}
 	
@@ -308,7 +314,7 @@ public class Printtokens{
 	    {
 		while ( i < str.length() && str.charAt(i) != '\0' )  
 	      {
-		   if(Character.isDigit(str.charAt(i+1)))
+		   if(Character.isDigit(str.charAt(i)))      ////////////////Removed +1
 	         i++;
 	       else
 	         return false;
@@ -359,10 +365,11 @@ public class Printtokens{
 	            else
 	               return false;
 	           }      /* end WHILE */
-		    return false; 
+		    return true;  ///////////////Flipped
 	     }
 	  else
-		return true; 
+		return false; ///////////Flipped
+
 	}
 	
 	
@@ -375,7 +382,7 @@ public class Printtokens{
 	/*************************************************/
 	static void print_spec_symbol(String str)
 	{
-		if      (str.equals(")")) 
+		if      (str.equals("("))          //////////////Symbol ) was used twice. changed to (
 	    {
 	         
 	             System.out.print("lparen.\n");
