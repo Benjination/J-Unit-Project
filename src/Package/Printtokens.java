@@ -1,5 +1,8 @@
 package Package;
+<<<<<<< HEAD
 
+=======
+>>>>>>> 5fbd02651574503e3e96cdcb215b8221435ca685
 import java.io.*;
 
 public class Printtokens{
@@ -23,7 +26,13 @@ public class Printtokens{
 	BufferedReader open_character_stream(String fname) {
 		BufferedReader br = null;
 		if (fname == null) { 
+<<<<<<< HEAD
 			br = new BufferedReader(new InputStreamReader(System.in));
+=======
+			//Suggested Change
+			return new BufferedReader(new StringReader(""));
+			//br = new BufferedReader(new InputStreamReader(System.in));
+>>>>>>> 5fbd02651574503e3e96cdcb215b8221435ca685
 		} else {
 			try {
 				FileReader fr = new FileReader(fname);
@@ -94,13 +103,18 @@ public class Printtokens{
 	/********************************************************/
 	String get_token(BufferedReader br)
 	{ 
+<<<<<<< HEAD
 	  int i=0,j;
+=======
+	  //int i=0,j;  //Not needed
+>>>>>>> 5fbd02651574503e3e96cdcb215b8221435ca685
 	  int id=0;
 	  int res = 0;
 	  char ch = '\0';
 	 
 	  StringBuilder sb = new StringBuilder();
 
+<<<<<<< HEAD
 	   try {
 		   res = get_char(br);
 		   if (res == -1) {
@@ -158,6 +172,68 @@ public class Printtokens{
 	     { unget_char(ch,br);       /* then put back this character         */
 	       return sb.toString(); 
 	     }
+=======
+		try {
+			res = get_char(br);
+			if (res == -1) {
+				return null;
+			}
+			ch = (char)res;
+			while(ch==' '||ch=='\n' || ch == '\r')   
+			{
+				res = get_char(br);
+				ch = (char)res;
+			} 
+
+		
+		if(res == -1)return null; //Included in suggested change
+		sb.append(ch);
+		if(is_spec_symbol(ch)==true)return sb.toString(); 
+		if(ch =='"')id=2;    /* prepare for string */ 
+		if(ch ==59)id=1;    /* prepare for comment */ 
+		
+		res = get_char(br);
+		if (res == -1) {
+			unget_char(ch,br);
+			return sb.toString();
+		}
+		ch = (char)res;
+
+		while (is_token_end(id,res) == false)/* until meet the end character */
+		{
+			sb.append(ch);
+			br.mark(4);
+			res = get_char(br);
+			if (res == -1) {
+				break;
+			}
+			ch = (char)res;
+		}
+		
+		if(res == -1)       /* if end character is eof token    */
+			{ 
+			unget_char(ch,br);        /* then put back eof on token_stream */
+			return sb.toString();
+			}
+		
+		if(is_spec_symbol(ch)==true)     /* if end character is special_symbol */
+			{ 
+			unget_char(ch,br);        /* then put back this character       */
+			return sb.toString();
+			}
+		if(id==1)                  /* if end character is " and is string */
+			{
+			if (ch == '"') {
+				sb.append(ch);
+			}
+			return sb.toString(); 
+			}
+		if(id==0 && ch==59)
+										/* when not in string or comment,meet ";" */
+			{ unget_char(ch,br);       /* then put back this character         */
+			return sb.toString(); 
+			}
+>>>>>>> 5fbd02651574503e3e96cdcb215b8221435ca685
 	} catch (IOException e) {
 		e.printStackTrace();
 	}
@@ -208,8 +284,14 @@ public class Printtokens{
 	 if(is_identifier(tok))return(identifier);
 	 if(is_num_constant(tok))return(num_constant);
 	 if(is_str_constant(tok))return(str_constant);
+<<<<<<< HEAD
 	 if(is_char_constant(tok))return(char_constant);
 	 if(is_comment(tok))return(comment);
+=======
+	 if(is_comment(tok))return(comment);                        //<----------
+	 if(is_char_constant(tok))return(char_constant);
+	 //if(is_comment(tok))return(comment);                      ////////////////Changed Order
+>>>>>>> 5fbd02651574503e3e96cdcb215b8221435ca685
 	 return(error);                    /* else look as error token */
 	}
 	
@@ -290,9 +372,13 @@ public class Printtokens{
 	/*************************************/
 	static boolean is_char_constant(String str)
 	{
+<<<<<<< HEAD
 		// if (str.length() > 2 || str.charAt(0)=='#' && Character.isLetter(str.charAt(1)))
 		// char consts must be exactly length 2
 	  if (str.length() == 2 && str.charAt(0)=='#' && Character.isLetter(str.charAt(1))) 
+=======
+	  if (str.length() > 2 || str.charAt(0)=='#' && Character.isLetter(str.charAt(1))) 
+>>>>>>> 5fbd02651574503e3e96cdcb215b8221435ca685
 	     return true;
 	  else  
 	     return false;
@@ -311,9 +397,13 @@ public class Printtokens{
 	    {
 		while ( i < str.length() && str.charAt(i) != '\0' )  
 	      {
+<<<<<<< HEAD
 			// if(Character.isDigit(str.charAt(i+1))
 			// Cannot access i+1 before verifying its exisitance
 		   if(Character.isDigit(str.charAt(i)))
+=======
+		   if(Character.isDigit(str.charAt(i)))      ////////////////Removed +1
+>>>>>>> 5fbd02651574503e3e96cdcb215b8221435ca685
 	         i++;
 	       else
 	         return false;
@@ -333,6 +423,7 @@ public class Printtokens{
 	{
 	  int i=1;
 	 
+<<<<<<< HEAD
 	//   if ( str.charAt(0) =='"')
 	// Need to check if last char is " and that string is not empty
 	if (str.length() >= 3 && str.charAt(0) == '"' && str.charAt(str.length() - 1) == '"')
@@ -341,6 +432,12 @@ public class Printtokens{
 		 { while (i < str.length() - 1 && str.charAt(i)!='\0') 
 	         { if(str.charAt(i)=='"' )
 	             return false;        /* meet an intermediate '"'           */
+=======
+	  if ( str.charAt(0) =='"')
+	     { while (i < str.length() && str.charAt(i)!='\0') 
+	         { if(str.charAt(i)=='"' )
+	             return true;        /* meet the second '"'           */
+>>>>>>> 5fbd02651574503e3e96cdcb215b8221435ca685
 	           else
 	           i++;
 	         }               /* end WHILE */
@@ -368,12 +465,20 @@ public class Printtokens{
 	            else
 	               return false;
 	           }      /* end WHILE */
+<<<<<<< HEAD
 		    // return false; 
 			return true; 
 	     }
 	  else
 	  // return true; 
 		return false; 
+=======
+		    return true;  ///////////////Flipped
+	     }
+	  else
+		return false; ///////////Flipped
+
+>>>>>>> 5fbd02651574503e3e96cdcb215b8221435ca685
 	}
 	
 	
@@ -385,9 +490,14 @@ public class Printtokens{
 	/*              according to the form required   */
 	/*************************************************/
 	static void print_spec_symbol(String str)
+<<<<<<< HEAD
 	{	// if      (str.equals(")"))
 		// wrong parenthase
 		if      (str.equals("(")) 
+=======
+	{
+		if      (str.equals("("))          //////////////Symbol ) was used twice. changed to (
+>>>>>>> 5fbd02651574503e3e96cdcb215b8221435ca685
 	    {
 	         
 	             System.out.print("lparen.\n");
@@ -464,6 +574,7 @@ public class Printtokens{
 	    {
 	        return true;
 	    }
+<<<<<<< HEAD
 		// Missing " and '
 		if (c == '"') 
 	    {
@@ -473,6 +584,8 @@ public class Printtokens{
 	    {
 	        return true;
 	    }
+=======
+>>>>>>> 5fbd02651574503e3e96cdcb215b8221435ca685
 	    return false;     /* others return FALSE */
 	}
 	
@@ -488,12 +601,15 @@ public class Printtokens{
 		}
 		Printtokens t = new Printtokens();
 		BufferedReader br = t.open_token_stream(fname);	/* open token stream */
+<<<<<<< HEAD
 
 		// Added for user clarity
 		if (fname == null) {
             System.out.println("Please type tokens to classify (press Ctrl+D to end):");
         }
 
+=======
+>>>>>>> 5fbd02651574503e3e96cdcb215b8221435ca685
 		String tok = t.get_token(br);
 		while (tok != null) {	/* take one token each time until eof */
 			t.print_token(tok);
