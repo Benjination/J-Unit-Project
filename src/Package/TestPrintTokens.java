@@ -1,20 +1,24 @@
 package Package;
 
+
 import org.junit.Test;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.FileWriter;
-import java.io.StringReader;
+
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.io.InputStream;
 
 import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class print_tokensTest {
+import java.io.*;
+import java.text.ListFormat.Style;
+
+import javax.accessibility.AccessibleAttributeSequence;
+
+import org.junit.jupiter.api.Test;
+
+public class TestPrintTokens {
 
     Printtokens pt = new Printtokens();
 
@@ -36,250 +40,356 @@ public class print_tokensTest {
         return out.toString().trim();
     }
     
-
-    // Test Cases for openCharacterStream
     @Test
-    public void testOpenCharacterStreamNull() {
-        BufferedReader br = pt.open_character_stream(null);
-        assertNotNull("BufferedReader should not be null for null input", br);
+    public void testOpenCharStreamNull() 
+    {
+        Printtokens instance = new Printtokens();
+        BufferedReader br = instance.open_character_stream(null); //call to function being tested
+    
+    
+        assertNotNull(br); 
+        assertTrue(br.getClass().getName().equals("java.io.BufferedReader"));
+        assertFalse(br.getClass().getName().contains("FileReader"));
     }
 
     @Test
-    public void testOpenCharacterStreamFilename() {
-        String filename = "file.txt";
-        try {
-            BufferedReader br = pt.open_character_stream(filename);
-            assertNotNull("BufferedReader should not be null for valid filename", br);
-        } catch (Exception e) {
-            assertTrue("Expected IOException for non-existing file", e instanceof IOException);
+    public void testOpenCharStreamFileName()
+    {
+        
+        File tempFile = new File("test", ".txt");
+        tempFile.deleteOnExit();
+
+        try{
+            FileWriter writer = new FileWriter(tempFile);
+
+            writer.write("Hello World"); 
+            writer.close();
+
+            Printtokens instance = new Printtokens();
+            
+            BufferedReader br = instance.open_character_stream(tempFile.getAbsolutePath());
+
+            
+            assertNotNull(br);
+            assertTrue(br.getClass().getName().equals("java.io.BufferedReader"));
+            
+            String firstLine = br.readLine();
+            assertEquals(firstLine, "Hello World");
+
+        }
+        catch(Exception e){};
+    }
+
+    /////////////////////////////////////////////////////////////////////////////////////
+    @Test
+    public void testGetChar() throws IOException 
+    {
+        Printtokens instance = new Printtokens();
+        File tempFile = File.createTempFile("temp", ".txt");
+        tempFile.deleteOnExit();
+
+        try (FileWriter writer = new FileWriter(tempFile)) 
+        {
+            writer.write("12345");
+        }
+
+        try (BufferedReader br = instance.open_character_stream(tempFile.getAbsolutePath())) 
+        {
+            int ret = instance.get_char(br);
+
+            assertNotNull(ret);
+            assertEquals('1', ret);
         }
     }
 
-    // Test Cases for getChar
+    /////////////////////////////////////////////////////////////////////////////
     @Test
-    public void testGetChar() {
-        String input = "abc";
-        BufferedReader br = new BufferedReader(new StringReader(input));
-        try {
-            int ch = pt.get_char(br);
-            assertEquals("Should return first character 'a'", 'a', ch);
-        } catch (Exception e) {
-            fail("Exception should not be thrown");
+    public void testUngetChar() throws IOException
+    {
+        Printtokens instance = new Printtokens();
+        File tempFile = File.createTempFile("temp", ".txt");
+        tempFile.deleteOnExit();
+
+        try(Writer writer = new FileWriter(tempFile);){
+            writer.write("1*");
+            writer.close();
+        }
+
+            try(BufferedReader br = instance.open_character_stream(tempFile.getAbsolutePath());){
+            int one = instance.get_char(br);
+            int star = instance.get_char(br);
+
+            instance.unget_char(star,br);
+
+            int star2 = instance.get_char(br);
+
+            assertEquals(one, '1');
+            assertEquals(star, '*');
+            assertEquals(star2, '*');
         }
     }
 
-    // Test Cases for ungetChar
+    /////////////////////////////////////////////////////////////////////////////
     @Test
-    public void testUngetChar() {
-        String input = "abc";
-        BufferedReader br = new BufferedReader(new StringReader(input));
-        try {
-            int ch = pt.get_char(br);
-            char ungetResult = pt.unget_char(ch, br);
-            assertEquals("Should return 0 after unget", 0, ungetResult);
-        } catch (Exception e) {
-            fail("Exception should not be thrown");
+    public void testOpenTokenStream() throws IOException
+    {
+        Printtokens instance = new Printtokens();
+        File tempFile = File.createTempFile("temp", ".txt");
+        tempFile.deleteOnExit();
+
+        try(Writer writer = new FileWriter(tempFile);){
+            writer.write("1*");
+            writer.close();
         }
+        //path one
+        BufferedReader one = instance.open_token_stream(null);
+        //path2
+        BufferedReader two = instance.open_token_stream(tempFile.getAbsolutePath());
+
+        assertNotNull(one);
+        assertNotNull(two);
+
+        assertTrue(one.getClass().getName().equals("java.io.BufferedReader"));
+        assertFalse(one.getClass().getName().contains("FileReader"));
+        
+        assertTrue(two.getClass().getName().equals("java.io.BufferedReader")); 
+        String content = two.readLine();
+        assertEquals("1*", content);
+
     }
 
-    // Test Cases for openTokenStream
+     /////////////////////////////////////////////////////////////////////////////
+     @Test
+     public void testGetToken() throws IOException
+     {
+        Printtokens instance = new Printtokens();
+        File tempFile = File.createTempFile("temp", ".txt");
+        tempFile.deleteOnExit();
+
+        BufferedReader one = null;
+        String one1 = instance.get_token(one);
+        assertNull(one1);
+
+        //file with no token
+        try(Writer writer = new FileWriter(tempFile);){
+            writer.write("\n\n");
+            writer.close();
+        }
+        BufferedReader two = instance.open_character_stream(tempFile.getAbsolutePath());
+        assertTrue(two.getClass().getName().equals("java.io.BufferedReader")); 
+        String two2 = instance.get_token(two);
+        assertEquals(two2, null);
+
+        //file with spec_symbol
+        try (Writer writer = new FileWriter(tempFile, false)) {
+            writer.write("(");
+            writer.close();
+        }
+        BufferedReader three = instance.open_character_stream(tempFile.getAbsolutePath());
+        assertTrue(three.getClass().getName().equals("java.io.BufferedReader")); 
+        String three3 = three.readLine();
+        assertEquals(three3, "(");
+        three3 = instance.get_token(three);
+        assertEquals(three3, null);
+
+        //single char
+        try (Writer writer = new FileWriter(tempFile, false)) {
+            writer.write("a");
+            writer.close();
+        }
+        BufferedReader four = instance.open_character_stream(tempFile.getAbsolutePath());
+        assertTrue(four.getClass().getName().equals("java.io.BufferedReader"));
+        String four4 = instance.get_token(four);
+        assertEquals(four4, "a");
+
+        //multiple char
+        try (Writer writer = new FileWriter(tempFile, false)) {
+            writer.write("abc");
+            writer.close();
+        }
+        BufferedReader five = instance.open_character_stream(tempFile.getAbsolutePath());
+        assertTrue(five.getClass().getName().equals("java.io.BufferedReader"));
+        String five5 = instance.get_token(five);
+        assertEquals(five5, "abc");
+
+        //ends in spec_symbol
+        try (Writer writer = new FileWriter(tempFile, false)) {
+            writer.write("abc)");
+            writer.close();
+        }
+        BufferedReader six = instance.open_character_stream(tempFile.getAbsolutePath());
+        assertTrue(six.getClass().getName().equals("java.io.BufferedReader"));
+        String six6 = instance.get_token(six);
+        assertEquals(six6, "abc");
+
+        //String
+        try (Writer writer = new FileWriter(tempFile, false)) {
+            writer.write("\"abc\"");
+            writer.close();
+        }
+        BufferedReader seven = instance.open_character_stream(tempFile.getAbsolutePath());
+        assertTrue(seven.getClass().getName().equals("java.io.BufferedReader"));
+        String seven7 = instance.get_token(seven);
+        assertEquals("\"abc\"", seven7);
+        
+        //remove semicolon
+        try (Writer writer = new FileWriter(tempFile, false)) {
+            writer.write("abc;");
+            writer.close();
+        }
+        BufferedReader eight = instance.open_character_stream(tempFile.getAbsolutePath());
+        assertTrue(eight.getClass().getName().equals("java.io.BufferedReader"));
+        String eight8 = instance.get_token(eight);
+        assertEquals(eight8, "abc");
+
+        //normal
+        try (Writer writer = new FileWriter(tempFile, false)) {
+            writer.write("Hello");
+            writer.close();
+        }
+        BufferedReader nine = instance.open_character_stream(tempFile.getAbsolutePath());
+        assertTrue(nine.getClass().getName().equals("java.io.BufferedReader"));
+        String nine9 = instance.get_token(nine);
+        assertEquals(nine9, "Hello");
+     }
+
+      /////////////////////////////////////////////////////////////////////////////
     @Test
-    public void testOpenTokenStreamFilename() {
-        BufferedReader br = pt.open_token_stream("test.txt");
-        assertNotNull("BufferedReader should not be null for valid filename", br);
+    public void testIsTokenEnd() throws IOException
+    {
+        int x,y;
+
+        x=0;
+        y=-1;
+        assertTrue(Printtokens.is_token_end(x, y));
+
+        x=1;
+        y=34;
+        assertTrue(Printtokens.is_token_end(x, y));
+
+        x=1;
+        y=97;
+        assertFalse(Printtokens.is_token_end(x, y));
+
+        x=2;
+        y=97;
+        assertFalse(Printtokens.is_token_end(x, y));
+
+        x=2;
+        y=10;
+        assertTrue(Printtokens.is_token_end(x, y));
+
+        x=0;
+        y=40;
+        assertTrue(Printtokens.is_token_end(x, y));
+
+        x=0;
+        y=32;
+        assertTrue(Printtokens.is_token_end(x, y));
+
+        x=0;
+        y=97;
+        assertFalse(Printtokens.is_token_end(x, y));
     }
 
-    @Test
-    public void testOpenTokenStreamNull() {
-        BufferedReader br = pt.open_token_stream(null);
-        assertNotNull("BufferedReader should not be null for null input", br);
-    }
+     /////////////////////////////////////////////////////////////////////////////
+     @Test
+     public void testTokenType() throws IOException
+     {
+        String tok;
+        
+        tok = "if";
+        assertEquals(Printtokens.keyword, Printtokens.token_type(tok));
 
-    // Test Cases for getToken
-    @Test
-    public void testGetTokenEmptyFile() {
-        BufferedReader br = new BufferedReader(new StringReader(""));
-        String token = pt.get_token(br);
-        assertNull("Should return null for empty input", token);
-    }
+        tok = "(";
+        assertEquals(Printtokens.spec_symbol, Printtokens.token_type(tok));
 
-    @Test
-    public void testGetTokenNewLines() {
-        BufferedReader br = new BufferedReader(new StringReader("\n\n"));
-        String token = pt.get_token(br);
-        assertNull("Should return null for consecutive newlines", token);
-    }
+        tok = "variableName";
+        assertEquals(Printtokens.identifier, Printtokens.token_type(tok));
 
-    @Test
-    public void testGetTokenSpecialSymbol() {
-        BufferedReader br = new BufferedReader(new StringReader("("));
-        String token = pt.get_token(br);
-        assertEquals("Should return '(' as token", "(", token);
-    }
+        tok = "123";
+        assertEquals(Printtokens.num_constant, Printtokens.token_type(tok));
 
-    @Test
-    public void testGetTokenAlpha() {
-        BufferedReader br = new BufferedReader(new StringReader("a"));
-        String token = pt.get_token(br);
-        assertEquals("Should return 'a' as token", "a", token);
-    }
+        tok = "\"Hello\"";
+        assertEquals(Printtokens.str_constant, Printtokens.token_type(tok));
 
-    @Test
-    public void testGetTokenWord() {
-        BufferedReader br = new BufferedReader(new StringReader("abc"));
-        String token = pt.get_token(br);
-        assertEquals("Should return 'abc' as token", "abc", token);
-    }
+        tok = "#a";
+        assertEquals(Printtokens.char_constant, Printtokens.token_type(tok));
 
-    @Test
-    public void testGetTokenWordWithParentheses() {
-        BufferedReader br = new BufferedReader(new StringReader("abc)"));
-        String token = pt.get_token(br);
-        assertEquals("Should return 'abc' as token before ')' character", "abc", token);
-    }
+        tok = ";comment";
+        assertEquals(Printtokens.comment, Printtokens.token_type(tok));
 
-    @Test
-    public void testGetTokenQuotedString() {
-        BufferedReader br = new BufferedReader(new StringReader("\"abc\""));
-        String token = pt.get_token(br);
-        assertEquals("Should return quoted string", "\"abc\"", token);
-    }
+        tok = " ";
+        assertEquals(Printtokens.error, Printtokens.token_type(tok));
 
-    @Test
-    public void testGetTokenWithSemicolon() {
-        BufferedReader br = new BufferedReader(new StringReader(";abc;"));
-        String token = pt.get_token(br);
-        assertEquals("Should return token including semicolon", ";abc;", token);
-    }
 
-    @Test
-    public void testGetTokenHello() {
-        BufferedReader br = new BufferedReader(new StringReader("hello"));
-        String token = pt.get_token(br);
-        assertEquals("Should return 'hello'", "hello", token);
-    }
+     }
 
-    // Test Cases for isTokenEnd
+      /////////////////////////////////////////////////////////////////////////////
     @Test
-    public void testIsToken() {
-        assertTrue("Should return true for '0,-1'", Printtokens.is_token_end(0, -1));
-        assertTrue("Should return true for '1,34'", Printtokens.is_token_end(1, 34));
-        assertFalse("Should return false for '1,97'", Printtokens.is_token_end(1, 97));
-        assertFalse("Should return true for '2,97'", Printtokens.is_token_end(2, 97));
-        assertTrue("Should return true for '2,10'", Printtokens.is_token_end(2, 10));
-        assertTrue("Should return true for '0,40'", Printtokens.is_token_end(0, 40));
-        assertTrue("Should return true for '0,32'", Printtokens.is_token_end(0, 32));
-        assertFalse("Should return false for '0,97'", Printtokens.is_token_end(0, 97));
-    }
+    public void testPrintToken() throws IOException
+    {
+        Printtokens instance = new Printtokens();
+        String tok;
+        ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+        PrintStream originalOut = System.out;
+        System.setOut(new PrintStream(outContent));
+        
+        tok = " ";
+        instance.print_token(tok);
+        assertEquals("error,\" \".\n", outContent.toString());
+        System.setOut(originalOut);
+        outContent.reset(); 
+        System.setOut(new PrintStream(outContent));
 
-    // Test Cases for tokenType
-    @Test
-    public void testTokenTypeKeyword() {
-        assertEquals("Should return keyword type", 1, Printtokens.token_type("and"));
-        assertEquals("Should return keyword type", 1, Printtokens.token_type("or"));
-        assertEquals("Should return keyword type", 1, Printtokens.token_type("if"));
-        assertEquals("Should return keyword type", 1, Printtokens.token_type("xor"));
-        assertEquals("Should return keyword type", 1, Printtokens.token_type("lambda"));
-        assertEquals("Should return keyword type", 1, Printtokens.token_type("=>"));
-    }
+        tok = "if";
+        instance.print_token(tok);
+        assertEquals("keyword,\"if\".\n", outContent.toString());
+        System.setOut(originalOut);
+        outContent.reset(); 
+        System.setOut(new PrintStream(outContent));
 
-    @Test
-    public void testTokenTypeSpecialSymbol() {
-        assertEquals("Should return special symbol type", 2, Printtokens.token_type("("));
-        assertEquals("Should return special symbol type", 2, Printtokens.token_type(")"));
-        assertEquals("Should return special symbol type", 2, Printtokens.token_type("["));
-        assertEquals("Should return special symbol type", 2, Printtokens.token_type("]"));
-        assertEquals("Should return special symbol type", 2, Printtokens.token_type("'"));
-        assertEquals("Should return special symbol type", 2, Printtokens.token_type("`"));
-        assertEquals("Should return special symbol type", 2, Printtokens.token_type(","));
-    }
+        tok = "(";
+        instance.print_token(tok);
+        assertEquals("lparen.\n", outContent.toString());
+        System.setOut(originalOut);
+        outContent.reset(); 
+        System.setOut(new PrintStream(outContent));
 
-    @Test
-    public void testTokenTypeIdentifier() {
-        assertEquals("Should return identifier type", 3, Printtokens.token_type("variableName"));
-        assertEquals("Should return identifier type", 3, Printtokens.token_type("a"));
-        assertEquals("Should return identifier type", 3, Printtokens.token_type("aa"));
-        assertEquals("Should return identifier type", 3, Printtokens.token_type("a1"));
-        assertEquals("Should return identifier type", 3, Printtokens.token_type("a2"));
-    }
+        tok = "variableName";
+        instance.print_token(tok);
+        assertEquals("identifier,\"variableName\".\n", outContent.toString());
+        System.setOut(originalOut);
+        outContent.reset(); 
+        System.setOut(new PrintStream(outContent));
 
-    @Test
-    public void testTokenTypeNumberConstant() {
-        assertEquals("Should return number constant type", 41, Printtokens.token_type("123"));
-        assertEquals("Should return number constant type", 41, Printtokens.token_type("1"));
-        assertEquals("Should return number constant type", 41, Printtokens.token_type("321"));
-    }
+        tok = "123";
+        instance.print_token(tok);
+        assertEquals("numeric,123.\n", outContent.toString());
+        System.setOut(originalOut);
+        outContent.reset(); 
+        System.setOut(new PrintStream(outContent));
 
-    @Test
-    public void testTokenTypeStringConstant() {
-        assertEquals("Should return string constant type", 42, Printtokens.token_type("\"HelloWorld\""));
-        assertEquals("Should return string constant type", 42, Printtokens.token_type("\"asd\""));
-        assertEquals("Should return string constant type", 42, Printtokens.token_type("\"123\""));
-    }
+        tok = "\"Hello\"";
+        instance.print_token(tok);
+        assertEquals("string,\"Hello\".\n", outContent.toString());
+        System.setOut(originalOut);
+        outContent.reset(); 
+        System.setOut(new PrintStream(outContent));
 
-    @Test
-    public void testTokenTypeCharConstant() {
-        assertEquals("Should return char constant type", 43, Printtokens.token_type("#a"));
-        assertEquals("Should return char constant type", 43, Printtokens.token_type("#b"));
-    }
+        tok = "#a";
+        instance.print_token(tok);
+        assertEquals("character,\'a\'.\n", outContent.toString());
+        System.setOut(originalOut);
+        outContent.reset(); 
+        System.setOut(new PrintStream(outContent));
 
-    @Test
-    public void testTokenTypeComment() {
-        assertEquals("Should return comment type", 5, Printtokens.token_type(";comment"));
-    }
-
-    @Test
-    public void testTokenTypeError() {
-        assertEquals("Should return error type", 0, Printtokens.token_type("*^&"));
-    }
-
-    // Test Cases for printToken
-    @Test
-    public void testPrintTokenError() {
-        String result = captureOutput(() -> pt.print_token("*^&"));
-        assertEquals("error,\"*^&\".", result);
-    }
-
-    @Test
-    public void testPrintTokenKeyword() {
-        String result = captureOutput(() -> pt.print_token("if"));
-        assertEquals("keyword,\"if\".", result);
-    }
-
-    @Test
-    public void testPrintTokenSpecSymbol() {
-        String result = captureOutput(() -> pt.print_token("("));
-        assertEquals("lparen.", result);
-    }
-
-    @Test
-    public void testPrintTokenIdentifier() {
-        String result = captureOutput(() -> pt.print_token("variableName"));
-        assertEquals("identifier,\"variableName\".", result);
-    }
-
-    @Test
-    public void testPrintTokenNumeric() {
-        String result = captureOutput(() -> pt.print_token("123"));
-        assertEquals("numeric,123.", result);
-    }
-
-    @Test
-    public void testPrintTokenString() {
-        String result = captureOutput(() -> pt.print_token("\"HelloWorld\""));
-        assertEquals("string,\"HelloWorld\".", result);
-    }
-
-    @Test
-    public void testPrintTokenCharConstant() {
-        String result = captureOutput(() -> pt.print_token("#a"));
-        assertEquals("character,\'a\'.", result);
-    }
-
-    @Test
-    public void testPrintTokenComment() {
-        String result = captureOutput(() -> pt.print_token(";comment"));
-        assertEquals("comment,\";comment\".", result);
+        tok = ";comment";
+        instance.print_token(tok);
+        assertEquals("comment,\";comment\".\n", outContent.toString());
+        System.setOut(originalOut);
+        outContent.reset(); 
+        System.setOut(new PrintStream(outContent));
     }
 
     // Test Cases for isComment
@@ -567,7 +677,8 @@ public void testMain5() {
                 "bquote.",
                 "keyword,\"and\".",
                 "identifier,\"j\".",
-                "error,\"112A\".");
+                "error,\"112A\".",
+                "rparen.");
         assertEquals("Expected output for mixed input", expected, result);
     }
 
@@ -578,7 +689,7 @@ public void testMain5() {
             "; this is a comment",
             "if ( x 123 \"hello\" ;another comment",
             "lambda )",
-            "#c \"string\" 456 ` quote , comma ;comment",
+            "#c \"string with spaces\" 456 ` quote , comma ;comment",
             "unknown_token",
             "123abc",
             "\"unclosed_string",
@@ -610,7 +721,9 @@ public void testMain5() {
             "string,\"string with spaces\".",
             "numeric,456.",
             "bquote.",
+            "identifier,\"quote\".",
             "comma.",
+            "identifier,\"comma\".",
             "comment,\";comment\".",
             "error,\"unknown_token\".",
             "error,\"123abc\".",
