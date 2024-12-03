@@ -1,0 +1,8 @@
+; this is a comment
+if ( x 123 "hello" ;another comment
+lambda )
+#c "string with spaces" 456 ` quote , comma ;comment
+unknown_token
+123abc
+"unclosed_string
+and [ ] ( ) ;end_comment
